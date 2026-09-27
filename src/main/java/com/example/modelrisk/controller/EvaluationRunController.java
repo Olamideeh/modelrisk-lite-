@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import com.example.modelrisk.service.EvaluationExecutionService;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,14 +19,17 @@ import java.util.UUID;
 @RequestMapping("/api/v1/evaluations")
 public class EvaluationRunController {
 
+    private final EvaluationExecutionService evaluationExecutionService;
     private final EvaluationRunService evaluationRunService;
 
     public EvaluationRunController(
-            EvaluationRunService evaluationRunService
+            EvaluationRunService evaluationRunService,
+            EvaluationExecutionService evaluationExecutionService
     ) {
         this.evaluationRunService = evaluationRunService;
+        this.evaluationExecutionService =
+                evaluationExecutionService;
     }
-
     @PostMapping("/model-versions/{modelVersionId}")
     @PreAuthorize(
             "hasAnyRole('RISK_REVIEWER', 'ADMIN')"
@@ -84,6 +88,30 @@ public class EvaluationRunController {
         return ResponseEntity.ok(
                 evaluationRunService.getEvaluations(
                         organizationId
+                )
+        );
+    }
+    @PostMapping("/{runId}/execute")
+    @PreAuthorize(
+            "hasAnyRole('RISK_REVIEWER', 'ADMIN')"
+    )
+    public ResponseEntity<EvaluationRunResponse> executeEvaluation(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID runId
+    ) {
+        UUID organizationId = UUID.fromString(
+                jwt.getClaimAsString("organizationId")
+        );
+
+        evaluationExecutionService.execute(
+                organizationId,
+                runId
+        );
+
+        return ResponseEntity.ok(
+                evaluationRunService.getEvaluation(
+                        organizationId,
+                        runId
                 )
         );
     }
