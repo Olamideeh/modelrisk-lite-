@@ -120,4 +120,16 @@ public class GlobalExceptionHandler {
                 Map.of()
         );
     }
+    @ExceptionHandler(ModelEndpointException.class)
+    public ResponseEntity<ApiErrorResponse> handleModelEndpoint(
+            ModelEndpointException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_GATEWAY,
+                exception.getMessage(),
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
 }
