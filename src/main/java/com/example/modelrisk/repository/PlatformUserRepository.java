@@ -16,4 +16,8 @@ public interface PlatformUserRepository
     List<PlatformUser> findAllByOrganizationIdOrderByCreatedAtDesc(
             UUID organizationId
     );
+    Optional<PlatformUser> findByIdAndOrganizationId(
+            UUID id,
+            UUID organizationId
+    );
 }
