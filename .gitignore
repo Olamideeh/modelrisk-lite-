@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Python
+ml-model/.venv/
+ml-model/__pycache__/
+*.pyc
