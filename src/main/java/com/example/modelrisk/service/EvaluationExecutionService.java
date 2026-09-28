@@ -17,6 +17,7 @@ import java.util.UUID;
 @Service
 public class EvaluationExecutionService {
 
+    private final EvaluationFindingService evaluationFindingService;
     private final EvaluationRunRepository evaluationRunRepository;
     private final ModelEvaluationEngine evaluationEngine;
     private final EvaluationOutcomeDecider outcomeDecider;
@@ -24,11 +25,13 @@ public class EvaluationExecutionService {
     public EvaluationExecutionService(
             EvaluationRunRepository evaluationRunRepository,
             ModelEvaluationEngine evaluationEngine,
-            EvaluationOutcomeDecider outcomeDecider
+            EvaluationOutcomeDecider outcomeDecider,
+            EvaluationFindingService evaluationFindingService
     ) {
         this.evaluationRunRepository = evaluationRunRepository;
         this.evaluationEngine = evaluationEngine;
         this.outcomeDecider = outcomeDecider;
+        this.evaluationFindingService = evaluationFindingService;
     }
 
     @Transactional
@@ -99,5 +102,6 @@ public class EvaluationExecutionService {
         }
 
         evaluationRunRepository.save(run);
+        evaluationFindingService.generateFindings(run);
     }
 }
