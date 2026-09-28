@@ -87,4 +87,43 @@ public class ModelVersionController {
                 )
         );
     }
+    @PostMapping("/model-versions/{versionId}/deploy")
+    @PreAuthorize("hasRole('MODEL_OWNER')")
+    public ResponseEntity<ModelVersionResponse> deployVersion(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID versionId
+    ) {
+        UUID organizationId = UUID.fromString(
+                jwt.getClaimAsString("organizationId")
+        );
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        return ResponseEntity.ok(
+                modelVersionService.deployVersion(
+                        organizationId,
+                        userId,
+                        versionId
+                )
+        );
+    }
+
+    @PostMapping("/model-versions/{versionId}/retire")
+    @PreAuthorize("hasRole('MODEL_OWNER')")
+    public ResponseEntity<ModelVersionResponse> retireVersion(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID versionId
+    ) {
+        UUID organizationId = UUID.fromString(
+                jwt.getClaimAsString("organizationId")
+        );
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        return ResponseEntity.ok(
+                modelVersionService.retireVersion(
+                        organizationId,
+                        userId,
+                        versionId
+                )
+        );
+    }
 }

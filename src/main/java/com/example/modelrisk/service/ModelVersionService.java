@@ -188,4 +188,80 @@ public class ModelVersionService {
                 version.getCreatedAt()
         );
     }
+    @Transactional
+    public ModelVersionResponse deployVersion(
+            UUID organizationId,
+            UUID userId,
+            UUID versionId
+    ) {
+        ModelVersion version = modelVersionRepository
+                .findByIdAndModelOrganizationId(
+                        versionId,
+                        organizationId
+                )
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Model version not found"
+                ));
+
+        if (!version.getModel().getOwner().getId().equals(userId)) {
+            throw new IllegalArgumentException(
+                    "Only the model owner can deploy this version"
+            );
+        }
+
+        if (version.getStatus() != ModelVersionStatus.APPROVED) {
+            throw new ConflictException(
+                    "Only an APPROVED model version can be deployed"
+            );
+        }
+
+        modelVersionRepository
+                .findFirstByModelIdAndStatus(
+                        version.getModel().getId(),
+                        ModelVersionStatus.DEPLOYED
+                )
+                .ifPresent(existing -> {
+                    throw new ConflictException(
+                            "Another version of this model is already deployed"
+                    );
+                });
+
+        version.setStatus(ModelVersionStatus.DEPLOYED);
+        version.setDeployedAt(Instant.now());
+
+        return toResponse(modelVersionRepository.save(version));
+    }
+
+    @Transactional
+    public ModelVersionResponse retireVersion(
+            UUID organizationId,
+            UUID userId,
+            UUID versionId
+    ) {
+        ModelVersion version = modelVersionRepository
+                .findByIdAndModelOrganizationId(
+                        versionId,
+                        organizationId
+                )
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Model version not found"
+                ));
+
+        if (!version.getModel().getOwner().getId().equals(userId)) {
+            throw new IllegalArgumentException(
+                    "Only the model owner can retire this version"
+            );
+        }
+
+        if (version.getStatus() != ModelVersionStatus.DEPLOYED) {
+            throw new ConflictException(
+                    "Only a DEPLOYED model version can be retired"
+            );
+        }
+
+        version.setStatus(ModelVersionStatus.RETIRED);
+        version.setRetiredAt(Instant.now());
+
+        return toResponse(modelVersionRepository.save(version));
+    }
 }

@@ -2,6 +2,7 @@ package com.example.modelrisk.repository;
 
 import com.example.modelrisk.entity.ModelVersion;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.example.modelrisk.enums.ModelVersionStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,5 +23,9 @@ public interface ModelVersionRepository
 
     List<ModelVersion> findAllByModelIdOrderByCreatedAtDesc(
             UUID modelId
+    );
+    Optional<ModelVersion> findFirstByModelIdAndStatus(
+            UUID modelId,
+            ModelVersionStatus status
     );
 }
