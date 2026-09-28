@@ -21,6 +21,7 @@ import java.util.UUID;
 @Service
 public class EvaluationReviewService {
 
+    private final AuditService auditService;
     private final EvaluationReviewRepository reviewRepository;
     private final EvaluationRunRepository evaluationRunRepository;
     private final PlatformUserRepository platformUserRepository;
@@ -28,11 +29,13 @@ public class EvaluationReviewService {
     public EvaluationReviewService(
             EvaluationReviewRepository reviewRepository,
             EvaluationRunRepository evaluationRunRepository,
-            PlatformUserRepository platformUserRepository
+            PlatformUserRepository platformUserRepository,
+            AuditService auditService
     ) {
         this.reviewRepository = reviewRepository;
         this.evaluationRunRepository = evaluationRunRepository;
         this.platformUserRepository = platformUserRepository;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -78,6 +81,8 @@ public class EvaluationReviewService {
 
         ModelVersion version = run.getModelVersion();
         Instant now = Instant.now();
+        String previousStatus = version.getStatus().name();
+
 
         switch (request.decision()) {
             case APPROVED -> {
@@ -102,7 +107,26 @@ public class EvaluationReviewService {
                 .reviewedAt(now)
                 .build();
 
-        return toResponse(reviewRepository.save(review));
+        EvaluationReview savedReview =
+                reviewRepository.save(review);
+
+        auditService.record(
+                organizationId,
+                run.getReference(),
+                AuditActorType.USER,
+                reviewer.getId().toString(),
+                AuditEventType.REVIEW_SUBMITTED,
+                "ModelVersion",
+                version.getId().toString(),
+                previousStatus,
+                version.getStatus().name(),
+                "Risk review decision: "
+                        + request.decision().name()
+                        + ". Note: "
+                        + request.reviewNote().trim()
+        );
+
+        return toResponse(savedReview);
     }
 
     @Transactional(readOnly = true)

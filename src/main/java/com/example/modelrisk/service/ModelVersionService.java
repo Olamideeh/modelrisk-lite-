@@ -5,6 +5,8 @@ import com.example.modelrisk.dto.ModelVersionResponse;
 import com.example.modelrisk.entity.AiModel;
 import com.example.modelrisk.entity.ModelVersion;
 import com.example.modelrisk.entity.PlatformUser;
+import com.example.modelrisk.enums.AuditActorType;
+import com.example.modelrisk.enums.AuditEventType;
 import com.example.modelrisk.enums.ModelVersionStatus;
 import com.example.modelrisk.exception.ConflictException;
 import com.example.modelrisk.exception.ResourceNotFoundException;
@@ -21,6 +23,7 @@ import java.util.UUID;
 @Service
 public class ModelVersionService {
 
+    private final AuditService auditService;
     private final ModelVersionRepository modelVersionRepository;
     private final AiModelRepository aiModelRepository;
     private final PlatformUserRepository platformUserRepository;
@@ -28,11 +31,13 @@ public class ModelVersionService {
     public ModelVersionService(
             ModelVersionRepository modelVersionRepository,
             AiModelRepository aiModelRepository,
-            PlatformUserRepository platformUserRepository
+            PlatformUserRepository platformUserRepository,
+            AuditService auditService
     ) {
         this.modelVersionRepository = modelVersionRepository;
         this.aiModelRepository = aiModelRepository;
         this.platformUserRepository = platformUserRepository;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -90,7 +95,25 @@ public class ModelVersionService {
                 .createdBy(creator)
                 .build();
 
-        return toResponse(modelVersionRepository.save(version));
+        ModelVersion savedVersion =
+                modelVersionRepository.save(version);
+
+        auditService.record(
+                organizationId,
+                "MV-" + savedVersion.getId(),
+                AuditActorType.USER,
+                userId.toString(),
+                AuditEventType.MODEL_VERSION_CREATED,
+                "ModelVersion",
+                savedVersion.getId().toString(),
+                null,
+                ModelVersionStatus.DRAFT.name(),
+                "Model version "
+                        + savedVersion.getVersionLabel()
+                        + " was created"
+        );
+
+        return toResponse(savedVersion);
     }
 
     @Transactional

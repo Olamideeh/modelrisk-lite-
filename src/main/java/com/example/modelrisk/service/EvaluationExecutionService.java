@@ -10,6 +10,8 @@ import com.example.modelrisk.exception.ResourceNotFoundException;
 import com.example.modelrisk.repository.EvaluationRunRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.modelrisk.enums.AuditActorType;
+import com.example.modelrisk.enums.AuditEventType;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,6 +19,7 @@ import java.util.UUID;
 @Service
 public class EvaluationExecutionService {
 
+    private final AuditService auditService;
     private final EvaluationFindingService evaluationFindingService;
     private final EvaluationRunRepository evaluationRunRepository;
     private final ModelEvaluationEngine evaluationEngine;
@@ -26,12 +29,14 @@ public class EvaluationExecutionService {
             EvaluationRunRepository evaluationRunRepository,
             ModelEvaluationEngine evaluationEngine,
             EvaluationOutcomeDecider outcomeDecider,
-            EvaluationFindingService evaluationFindingService
+            EvaluationFindingService evaluationFindingService,
+            AuditService auditService
     ) {
         this.evaluationRunRepository = evaluationRunRepository;
         this.evaluationEngine = evaluationEngine;
         this.outcomeDecider = outcomeDecider;
         this.evaluationFindingService = evaluationFindingService;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -53,6 +58,18 @@ public class EvaluationExecutionService {
 
         run.setStatus(EvaluationRunStatus.RUNNING);
         run.setStartedAt(Instant.now());
+        auditService.record(
+                organizationId,
+                run.getReference(),
+                AuditActorType.SYSTEM,
+                null,
+                AuditEventType.EVALUATION_STARTED,
+                "EvaluationRun",
+                run.getId().toString(),
+                EvaluationRunStatus.QUEUED.name(),
+                EvaluationRunStatus.RUNNING.name(),
+                "Automated AI model evaluation started"
+        );
 
         run.getModelVersion().setStatus(
                 ModelVersionStatus.EVALUATING
@@ -103,5 +120,18 @@ public class EvaluationExecutionService {
 
         evaluationRunRepository.save(run);
         evaluationFindingService.generateFindings(run);
+        auditService.record(
+                organizationId,
+                run.getReference(),
+                AuditActorType.SYSTEM,
+                null,
+                AuditEventType.EVALUATION_COMPLETED,
+                "EvaluationRun",
+                run.getId().toString(),
+                EvaluationRunStatus.RUNNING.name(),
+                EvaluationRunStatus.COMPLETED.name(),
+                "Evaluation completed with outcome: "
+                        + outcome.name()
+        );
     }
 }
