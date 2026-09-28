@@ -33,5 +33,27 @@ services:
     ports:
       - "8086:8080"
 
+  ai-model:
+    build:
+      context: ./ml-model
+      dockerfile: Dockerfile
+
+    container_name: modelrisk-ai-model
+    restart: unless-stopped
+
+    ports:
+      - "8090:8090"
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
 volumes:
   modelrisk_postgres_data:
